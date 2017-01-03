@@ -1,4 +1,4 @@
-d3.json('api/people', function(dataset) {
+d3.json('api/codes', function(dataset) {
     'use strict';
 
     var width = 360;
@@ -23,7 +23,7 @@ d3.json('api/people', function(dataset) {
         .outerRadius(radius);
 
     var pie = d3.pie()
-        .value(function(d) { return d.count; })
+        .value(function(d) { return d.percentage; })
         .sort(null);
 
     var path = svg.selectAll('path')
@@ -32,7 +32,7 @@ d3.json('api/people', function(dataset) {
         .append('path')
         .attr('d', arc)
         .attr('fill', function(d, i) {
-            return color(d.data.fullname);
+            return color(d.data.status_code);
         });
 
     var legend = svg.selectAll('.legend')

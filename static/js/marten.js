@@ -1,19 +1,12 @@
-(function(d3) {
+d3.json('api/people', function(dataset) {
     'use strict';
-
-    var dataset = [
-        { fullname: 'Abulia', count: 10 },
-        { fullname: 'Betelgeuse', count: 20 },
-        { fullname: 'Cantaloupe', count: 30 },
-        { fullname: 'Dijkstra', count: 40 }
-    ];
 
     var width = 360;
     var height = 360;
     var radius = Math.min(width, height) / 2;
     var donutWidth = 75;
-    var legendRectSize = 18;                                  
-    var legendSpacing = 4;                                    
+    var legendRectSize = 18;
+    var legendSpacing = 4;
 
     var color = d3.scaleOrdinal(d3.schemeCategory20b);
 
@@ -34,7 +27,7 @@
         .sort(null);
 
     var path = svg.selectAll('path')
-        .data(pie(dataset))
+        .data(pie(dataset._items))
         .enter()
         .append('path')
         .attr('d', arc)
@@ -42,28 +35,28 @@
             return color(d.data.fullname);
         });
 
-    var legend = svg.selectAll('.legend')                     
-        .data(color.domain())                                   
-        .enter()                                                
-        .append('g')                                            
-        .attr('class', 'legend')                                
-        .attr('transform', function(d, i) {                     
-            var height = legendRectSize + legendSpacing;          
-            var offset =  height * color.domain().length / 2;     
-            var horz = -2 * legendRectSize;                       
-            var vert = i * height - offset;                       
-            return 'translate(' + horz + ',' + vert + ')';        
-        });                                                     
+    var legend = svg.selectAll('.legend')
+        .data(color.domain())
+        .enter()
+        .append('g')
+        .attr('class', 'legend')
+        .attr('transform', function(d, i) {
+            var height = legendRectSize + legendSpacing;
+            var offset =  height * color.domain().length / 2;
+            var horz = -2 * legendRectSize;
+            var vert = i * height - offset;
+            return 'translate(' + horz + ',' + vert + ')';
+        });
 
-    legend.append('rect')                                     
-        .attr('width', legendRectSize)                          
-        .attr('height', legendRectSize)                         
-        .style('fill', color)                                   
-        .style('stroke', color);                                
+    legend.append('rect')
+        .attr('width', legendRectSize)
+        .attr('height', legendRectSize)
+        .style('fill', color)
+        .style('stroke', color);
 
-    legend.append('text')                                     
-        .attr('x', legendRectSize + legendSpacing)              
-        .attr('y', legendRectSize - legendSpacing)              
-        .text(function(d) { return d; });                       
+    legend.append('text')
+        .attr('x', legendRectSize + legendSpacing)
+        .attr('y', legendRectSize - legendSpacing)
+        .text(function(d) { return d; });
 
-})(window.d3);
+});

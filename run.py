@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from api.tables import HttpStatusCodes
+from api.tables import HttpStatusCodes, Base
 from chaos import chaos
 from dashboard import dashboard
 from eve import Eve
@@ -36,6 +36,10 @@ app.register_blueprint(dashboard, url_prefix='/status')
 
 app.register_blueprint(chaos, url_prefix='')
 
+db = app.data.driver
+Base.metadata.bind = db.engine
+db.Model = Base
+
 if __name__ == '__main__':
     bootstrap_data = [
         ('ok', 200, 25),
@@ -43,7 +47,7 @@ if __name__ == '__main__':
         ('your fault', 400, 25),
         ('my fault', 500, 25),
     ]
-    HttpStatusCodes.bootstrap(app, bootstrap_data)
+    HttpStatusCodes.bootstrap(db, bootstrap_data)
 
     if 'AUTO_RELOAD' in os.environ:
         reload = bool(os.environ.get('AUTO_RELOAD'))

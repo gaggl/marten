@@ -20,10 +20,7 @@ class HttpStatusCodes(Base):
         return cls(message=data[0], percentage=data[2], status_code=data[1])
 
     @classmethod
-    def bootstrap(self, app, data):
-        db = app.data.driver
-        Base.metadata.bind = db.engine
-        db.Model = Base
+    def bootstrap(self, db, data):
         db.create_all()
         if not db.session.query(HttpStatusCodes).count():
             for item in data:

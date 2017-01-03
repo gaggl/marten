@@ -1,4 +1,5 @@
-from flask import Blueprint
+from api.tables import HttpStatusCodes, Base
+from flask import Blueprint, current_app as app
 import random
 
 chaos = Blueprint('chaos', __name__)
@@ -7,11 +8,10 @@ chaos = Blueprint('chaos', __name__)
 @chaos.route('/', defaults={'path': '/'})
 @chaos.route('/<path:path>')
 def catch_all(path):
-    bootstrap_data = [
-        ('ok', 200, 25),
-        ('moved', 300, 25),
-        ('your fault', 400, 25),
-        ('my fault', 500, 25),
-    ]
+    db = app.data.driver
+    Base.metadata.bind = db.engine
+    db.Model = Base
+
+    bootstrap_data = list(db.session.query(HttpStatusCodes).all())
     status_code = random.choice(bootstrap_data)
-    return status_code[0] + ' - ' + path, status_code[1]
+    return status_code.message + ' - ' + path, status_code.status_code

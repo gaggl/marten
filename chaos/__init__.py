@@ -1,6 +1,6 @@
 from api.tables import HttpStatusCodes, Base
 from flask import Blueprint, current_app as app
-import random
+import numpy
 
 chaos = Blueprint('chaos', __name__)
 
@@ -12,6 +12,14 @@ def catch_all(path):
     Base.metadata.bind = db.engine
     db.Model = Base
 
-    bootstrap_data = list(db.session.query(HttpStatusCodes).all())
-    status_code = random.choice(bootstrap_data)
+    dataset = db.session.query(HttpStatusCodes).all()
+    probabilities = list()
+    for element in dataset:
+        probabilities.append(element.probability)
+
+    status_code = numpy.random.choice(dataset, p=probabilities)
+    db.session.query(HttpStatusCodes) \
+              .filter(HttpStatusCodes._id == status_code._id)\
+              .update({'count': status_code.count+1})
+    db.session.commit()
     return status_code.message + ' - ' + path, status_code.status_code

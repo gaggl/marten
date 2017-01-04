@@ -15,10 +15,11 @@ class HttpStatusCodes(Base):
     message = Column(String(80))
     status_code = Column(Integer())
     probability = Column(Float())
+    count = Column(Integer())
 
     @classmethod
     def from_tuple(cls, data):
-        return cls(message=data[0], status_code=data[1], probability=data[2])
+        return cls(message=data[0], status_code=data[1], probability=data[2], count=data[3])
 
     @classmethod
     def bootstrap(self, db, data):

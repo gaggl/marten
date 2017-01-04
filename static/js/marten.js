@@ -23,7 +23,7 @@ d3.json('api/codes', function(dataset) {
         .outerRadius(radius);
 
     var pie = d3.pie()
-        .value(function(d) { return d.probability; })
+        .value(function(d) { return d.count; })
         .sort(null);
 
     var path = svg.selectAll('path')

@@ -15,6 +15,8 @@ SETTINGS = {
     'DOMAIN': {
         'codes': HttpStatusCodes._eve_schema['codes'],
     },
+    'ITEM_METHODS': ['GET', 'PATCH', 'DELETE'],
+    'RESOURCE_METHODS': ['GET', 'POST', 'DELETE'],
     'SWAGGER_INFO': {
         'title': 'Marten',
         'version': '1.0',
@@ -57,10 +59,10 @@ db.Model = Base
 
 if __name__ == '__main__':
     bootstrap_data = [
-        ('ok', 200, 0.25),
-        ('moved', 300, 0.25),
-        ('your fault', 400, 0.25),
-        ('my fault', 500, 0.25),
+        ('ok', 200, 0.7, 0),
+        ('moved', 300, 0.1, 0),
+        ('your fault', 400, 0.1, 0),
+        ('my fault', 500, 0.1, 0),
     ]
     HttpStatusCodes.bootstrap(db, bootstrap_data)
 
@@ -72,14 +74,14 @@ if __name__ == '__main__':
         debug = bool(os.environ.get('DEBUG'))
     else:
         debug = False
-    if 'PORT' in os.environ:
-        port = int(os.environ.get('PORT'))
-    else:
-        port = 5000
     if 'HOST' in os.environ:
         host = str(os.environ.get('HOST'))
     else:
         host = '127.0.0.1'
+    if 'PORT' in os.environ:
+        port = int(os.environ.get('PORT'))
+    else:
+        port = 5000
 
     app.run(
         debug=debug,

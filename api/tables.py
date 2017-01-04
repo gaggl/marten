@@ -1,5 +1,4 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import column_property
 from sqlalchemy import (
     Column,
     Float,
@@ -19,7 +18,7 @@ class HttpStatusCodes(Base):
 
     @classmethod
     def from_tuple(cls, data):
-        return cls(status_code=data[0], payload=data[1], probability=data[2])
+        return cls(status_code=data['status_code'], payload=data['payload'], probability=data['probability'])
 
     @classmethod
     def bootstrap(self, db, data):

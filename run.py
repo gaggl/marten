@@ -8,6 +8,7 @@ from eve_sqlalchemy import SQL
 from eve_sqlalchemy.decorators import registerSchema
 from eve_sqlalchemy.validation import ValidatorSQL
 import os
+import yaml
 
 registerSchema('codes')(HttpStatusCodes)
 
@@ -58,12 +59,18 @@ Base.metadata.bind = db.engine
 db.Model = Base
 
 if __name__ == '__main__':
-    bootstrap_data = [
-        (200, 'ok', 0.7),
-        (300, 'moved', 0.1),
-        (400, 'your fault', 0.1),
-        (500, 'my fault', 0.1),
-    ]
+    try:
+        with open('marten.yaml') as data_file:
+            bootstrap_data = yaml.load(data_file.read())
+    except IOError:
+        bootstrap_data = [
+            {'payload': 'ok', 'probability': 0.7, 'status_code': 201},
+            {'payload': 'moved', 'probability': 0.1, 'status_code': 301},
+            {'payload': 'your fault', 'probability': 0.1, 'status_code': 401},
+            {'payload': 'my fault', 'probability': 0.1, 'status_code': 501},
+        ]
+    except:
+        raise
     HttpStatusCodes.bootstrap(db, bootstrap_data)
 
     if 'AUTO_RELOAD' in os.environ:

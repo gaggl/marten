@@ -22,4 +22,4 @@ def catch_all(path):
               .filter(HttpStatusCodes._id == status_code._id)\
               .update({'count': status_code.count+1})
     db.session.commit()
-    return status_code.message + ' - ' + path, status_code.status_code
+    return status_code.message

@@ -1,6 +1,8 @@
 d3.json('api/codes', function(dataset) {
     'use strict';
 
+    Pace.start()
+
     var width = 360;
     var height = 360;
     var radius = Math.min(width, height) / 2;
@@ -59,4 +61,28 @@ d3.json('api/codes', function(dataset) {
         .attr('y', legendRectSize - legendSpacing)
         .text(function(d) { return d; });
 
+    $('#table').bootstrapTable({
+        columns: [{
+            field: '_id',
+            title: 'ID'
+        }, {
+            field: 'status_code',
+            title: 'Status Code'
+        }, {
+            field: 'message',
+            title: 'Payload'
+        }, {
+            field: 'probability',
+            title: 'Probability'
+        },{
+            field: 'count',
+            title: 'Count'
+        }],
+        data: dataset._items
+    });
+    Pace.stop()
 });
+
+setTimeout(function(){
+    window.location.reload(1);
+}, 5000);

@@ -59,10 +59,10 @@ db.Model = Base
 
 if __name__ == '__main__':
     bootstrap_data = [
-        ('ok', 200, 0.7, 0),
-        ('moved', 300, 0.1, 0),
-        ('your fault', 400, 0.1, 0),
-        ('my fault', 500, 0.1, 0),
+        (200, 'ok', 0.7),
+        (300, 'moved', 0.1),
+        (400, 'your fault', 0.1),
+        (500, 'my fault', 0.1),
     ]
     HttpStatusCodes.bootstrap(db, bootstrap_data)
 

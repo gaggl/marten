@@ -69,7 +69,7 @@ d3.json('api/codes', function(dataset) {
             field: 'status_code',
             title: 'Status Code'
         }, {
-            field: 'message',
+            field: 'payload',
             title: 'Payload'
         }, {
             field: 'probability',

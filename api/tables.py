@@ -12,14 +12,14 @@ Base = declarative_base()
 class HttpStatusCodes(Base):
     __tablename__ = 'httpStatusCodes'
     _id = Column(Integer, primary_key=True, autoincrement=True)
-    message = Column(String(80))
     status_code = Column(Integer())
+    payload = Column(String(80))
     probability = Column(Float())
-    count = Column(Integer())
+    count = Column(Integer, server_default='0')
 
     @classmethod
     def from_tuple(cls, data):
-        return cls(message=data[0], status_code=data[1], probability=data[2], count=data[3])
+        return cls(status_code=data[0], payload=data[1], probability=data[2])
 
     @classmethod
     def bootstrap(self, db, data):

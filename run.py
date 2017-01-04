@@ -3,23 +3,39 @@ from api.tables import HttpStatusCodes, Base
 from chaos import chaos
 from dashboard import dashboard
 from eve import Eve
-from eve_docs import eve_docs
+from eve_swagger import swagger, add_documentation
 from eve_sqlalchemy import SQL
 from eve_sqlalchemy.decorators import registerSchema
 from eve_sqlalchemy.validation import ValidatorSQL
-from flask.ext.bootstrap import Bootstrap
 import os
 
 registerSchema('codes')(HttpStatusCodes)
 
 SETTINGS = {
-    'API_NAME': 'Marten',
     'DOMAIN': {
         'codes': HttpStatusCodes._eve_schema['codes'],
+    },
+    'SWAGGER_INFO': {
+        'title': 'Marten',
+        'version': '1.0',
+        'description': 'Http chaos monkey server.',
+        'termsOfService': 'This will definitely break your application.',
+        'contact': {
+            'name': 'Gaggl team',
+            'url': 'http://gaggle.io'
+        },
+        'license': {
+            'name': 'MIT',
+            'url': 'https://github.com/gaggl/marten/blob/master/LICENSE',
+        }
     },
     'SQLALCHEMY_DATABASE_URI': 'sqlite://',
     'SQLALCHEMY_TRACK_MODIFICATIONS': False,
     'URL_PREFIX': 'api',
+    'X_ALLOW_CREDENTIALS': False,
+    'X_DOMAINS': ['http://localhost:5000',
+                  'http://editor.swagger.io'],
+    'X_HEADERS': ['Content-Type', 'If-Match'],
     'XML': False,
 }
 app = Eve(auth=None,
@@ -29,8 +45,7 @@ app = Eve(auth=None,
           static_folder=os.path.join(os.environ.get('PWD'), 'static'),
           validator=ValidatorSQL)
 
-Bootstrap(app)
-app.register_blueprint(eve_docs, url_prefix='/docs')
+app.register_blueprint(swagger)
 
 app.register_blueprint(dashboard, url_prefix='/status')
 
@@ -42,10 +57,10 @@ db.Model = Base
 
 if __name__ == '__main__':
     bootstrap_data = [
-        ('ok', 200, 25),
-        ('moved', 300, 25),
-        ('your fault', 400, 25),
-        ('my fault', 500, 25),
+        ('ok', 200, 0.25),
+        ('moved', 300, 0.25),
+        ('your fault', 400, 0.25),
+        ('my fault', 500, 0.25),
     ]
     HttpStatusCodes.bootstrap(db, bootstrap_data)
 

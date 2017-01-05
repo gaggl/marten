@@ -1,4 +1,6 @@
-d3.json('api/codes', function(dataset) {
+var api_endpoint = 'api/codes';
+
+d3.json(api_endpoint, function(dataset) {
     'use strict';
 
     Pace.start()
@@ -61,19 +63,45 @@ d3.json('api/codes', function(dataset) {
         .attr('y', legendRectSize - legendSpacing)
         .text(function(d) { return d; });
 
-    $('#table').bootstrapTable({
+    $.fn.editable.defaults.mode = 'inline';
+    $.fn.editable.defaults.params = function(params) { return JSON.stringify(params); };
+    $.fn.editable.defaults.type = 'text';
+    $.fn.editable.defaults.validate = function (value) {
+        value = $.trim(value);
+        if (!value) {
+            return 'This field is required';
+        }
+        return '';
+    };
+
+    var $table = $('#table')
+    $table.on('editable-init.bs.table', function() {
+        $('.editable').on('init', function(e, edt) {
+            console.log(edt)
+            edt.options.url = api_endpoint + '/' + edt.options.pk;
+            edt.options.ajaxOptions = {
+                type: 'patch',
+                dataType: 'json',
+                contentType: 'application/json',
+            };
+        })
+    });
+    $table.bootstrapTable({
         columns: [{
             field: '_id',
             title: 'ID'
         }, {
             field: 'status_code',
-            title: 'Status Code'
+            title: 'Status Code',
+            editable: {}
         }, {
             field: 'payload',
-            title: 'Payload'
+            title: 'Payload',
+            editable: {}
         }, {
             field: 'probability',
-            title: 'Probability'
+            title: 'Probability',
+            editable: {}
         },{
             field: 'count',
             title: 'Count'
@@ -82,7 +110,3 @@ d3.json('api/codes', function(dataset) {
     });
     Pace.stop()
 });
-
-setTimeout(function(){
-    window.location.reload(1);
-}, 5000);

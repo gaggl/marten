@@ -16,8 +16,8 @@ SETTINGS = {
     'DOMAIN': {
         'codes': HttpStatusCodes._eve_schema['codes'],
     },
-    'ITEM_METHODS': ['GET', 'PATCH', 'DELETE'],
-    'RESOURCE_METHODS': ['GET', 'POST', 'DELETE'],
+    'ITEM_METHODS': ['GET', 'PATCH'],
+    'RESOURCE_METHODS': ['GET'],
     'SWAGGER_INFO': {
         'title': 'Marten',
         'version': '1.0',

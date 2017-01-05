@@ -81,7 +81,7 @@ d3.json(api_endpoint, function(dataset) {
     var $table = $('#table')
     $table.on('editable-init.bs.table', function() {
         $('.editable').on('init', function(e, edt) {
-            var row = dataset._items[edt.options.pk-1]
+            var row = $.grep(dataset._items, function(e) { return e._id == edt.options.pk })[0]
             edt.options.ajaxOptions = {
                 type: 'PATCH',
                 dataType: 'json',

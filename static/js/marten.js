@@ -64,7 +64,11 @@ d3.json(api_endpoint, function(dataset) {
         .text(function(d) { return d; });
 
     $.fn.editable.defaults.mode = 'inline';
-    $.fn.editable.defaults.params = function(params) { return JSON.stringify(params); };
+    $.fn.editable.defaults.params = function(params) {
+        var data = {};
+        data[params.name] = params.value;
+        return JSON.stringify(data);
+    };
     $.fn.editable.defaults.type = 'text';
     $.fn.editable.defaults.validate = function (value) {
         value = $.trim(value);
@@ -77,13 +81,14 @@ d3.json(api_endpoint, function(dataset) {
     var $table = $('#table')
     $table.on('editable-init.bs.table', function() {
         $('.editable').on('init', function(e, edt) {
-            console.log(edt)
-            edt.options.url = api_endpoint + '/' + edt.options.pk;
+            var row = dataset._items[edt.options.pk-1]
             edt.options.ajaxOptions = {
-                type: 'patch',
+                type: 'PATCH',
                 dataType: 'json',
                 contentType: 'application/json',
+                headers: {'If-Match': row._etag}
             };
+            edt.options.url = api_endpoint + '/' + row._id;
         })
     });
     $table.bootstrapTable({
@@ -93,16 +98,21 @@ d3.json(api_endpoint, function(dataset) {
         }, {
             field: 'status_code',
             title: 'Status Code',
-            editable: {}
+            editable: {
+                params: function(params) {
+                    var data = {};
+                    data[params.name] = parseInt(params.value);
+                    return JSON.stringify(data);
+                }
+            }
         }, {
             field: 'payload',
             title: 'Payload',
-            editable: {}
+            editable: true
         }, {
             field: 'probability',
             title: 'Probability',
-            editable: {}
-        },{
+        }, {
             field: 'count',
             title: 'Count'
         }],

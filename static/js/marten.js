@@ -1,4 +1,4 @@
-var api_endpoint = 'api/codes';
+var api_endpoint = 'v1/codes';
 
 d3.json(api_endpoint, function(dataset) {
     'use strict';

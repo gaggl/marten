@@ -34,7 +34,7 @@ SETTINGS = {
     },
     'SQLALCHEMY_DATABASE_URI': 'sqlite://',
     'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-    'URL_PREFIX': 'api',
+    'URL_PREFIX': 'marten/v1',
     'X_ALLOW_CREDENTIALS': False,
     'X_DOMAINS': ['http://localhost:5000',
                   'http://editor.swagger.io'],
@@ -44,13 +44,13 @@ SETTINGS = {
 app = Eve(auth=None,
           data=SQL,
           settings=SETTINGS,
-          static_url_path='/static',
+          static_url_path='/marten/static',
           static_folder=os.path.join(os.environ.get('PWD'), 'static'),
           validator=ValidatorSQL)
 
-app.register_blueprint(swagger)
+app.register_blueprint(swagger, url_prefix='/marten')
 
-app.register_blueprint(dashboard, url_prefix='/status')
+app.register_blueprint(dashboard, url_prefix='/marten/status')
 
 app.register_blueprint(chaos, url_prefix='')
 

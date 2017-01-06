@@ -1,5 +1,6 @@
 from api.tables import HttpStatusCodes, Base
 from flask import Blueprint, current_app as app
+import json
 import numpy
 
 chaos = Blueprint('chaos', __name__)
@@ -22,4 +23,11 @@ def catch_all(path):
               .filter(HttpStatusCodes._id == status_code._id)\
               .update({'count': status_code.count+1})
     db.session.commit()
-    return status_code.payload
+
+    payload = json.loads(status_code.payload)
+    body = payload['body']
+    if 'headers' in payload.keys():
+        headers = payload['headers']
+    else:
+        headers = {}
+    return body, status_code.status_code, headers

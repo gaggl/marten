@@ -1,9 +1,10 @@
+import json
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
     Column,
     Float,
-    String,
     Integer,
+    String,
 )
 
 Base = declarative_base()
@@ -12,13 +13,13 @@ class HttpStatusCodes(Base):
     __tablename__ = 'httpStatusCodes'
     _id = Column(Integer, primary_key=True, autoincrement=True)
     status_code = Column(Integer())
-    payload = Column(String(80))
+    payload = Column(String)
     probability = Column(Float())
     count = Column(Integer, server_default='0')
 
     @classmethod
     def from_tuple(cls, data):
-        return cls(status_code=data['status_code'], payload=data['payload'], probability=data['probability'])
+        return cls(status_code=data['status_code'], payload=json.dumps(data['payload']), probability=data['probability'])
 
     @classmethod
     def bootstrap(self, db, data):

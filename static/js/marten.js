@@ -64,11 +64,6 @@ d3.json(api_endpoint, function(dataset) {
         .text(function(d) { return d; });
 
     $.fn.editable.defaults.mode = 'inline';
-    $.fn.editable.defaults.params = function(params) {
-        var data = {};
-        data[params.name] = params.value;
-        return JSON.stringify(data);
-    };
     $.fn.editable.defaults.type = 'text';
     $.fn.editable.defaults.validate = function (value) {
         value = $.trim(value);
@@ -96,22 +91,29 @@ d3.json(api_endpoint, function(dataset) {
             field: '_id',
             title: 'ID'
         }, {
-            field: 'status_code',
-            title: 'Status Code',
             editable: {
                 params: function(params) {
                     var data = {};
                     data[params.name] = parseInt(params.value);
                     return JSON.stringify(data);
                 }
-            }
+            },
+            field: 'status_code',
+            title: 'Status Code'
         }, {
             field: 'payload',
-            title: 'Payload',
-            editable: true
+            title: 'Payload'
         }, {
+            editable: {
+                params: function(params) {
+                    var data = {};
+                    data[params.name] = parseFloat(params.value);
+                    return JSON.stringify(data);
+                },
+                type: 'text',
+            },
             field: 'probability',
-            title: 'Probability',
+            title: 'Probability'
         }, {
             field: 'count',
             title: 'Count'

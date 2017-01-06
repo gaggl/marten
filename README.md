@@ -27,17 +27,30 @@ probability.
     cat marten.yaml
     ---
     - status_code: 200
-      payload: ok
+      payload:
+        body: ok
+        headers:
+          Content-Type: 'application/json'
       probability: 0.7
     - status_code: 300
-      payload: moved
+      payload:
+        body: moved
+        headers:
+          Content-Type: 'application/json'
       probability: 0.1
     - status_code: 400
-      payload: your fault
+      payload:
+        body: your fault
+        headers:
+          Content-Type: 'application/json'
       probability: 0.1
     - status_code: 500
-      payload: my fault
+      payload:
+        body: my fault
+        headers:
+          Content-Type: 'application/json'
       probability: 0.1
+
 
 If you provide a marten.yaml in the same directory as run.py, the contents is
 imported at bootstrap, otherwise the defaults from the example get bootstrapped).
@@ -55,7 +68,3 @@ These return codes can also be changed on the fly while viewing the dashboard or
     http://$HOST:$PORT/marten/api-docs => Swagger json definition.
     http://$HOST:$PORT/marten/static => Css, img, js endpoint.
     http://$HOST:$PORT/marten/status => Usage dashboard.
-   
-## Known Issues
-
-    - Marten doesnt provide a way to set Response Headers

@@ -60,15 +60,11 @@ db.Model = Base
 
 if __name__ == '__main__':
     try:
-        with open('marten.yaml') as data_file:
+        with open('marten.yaml', 'r') as data_file:
             bootstrap_data = yaml.load(data_file.read())
     except IOError:
-        bootstrap_data = [
-            {'payload': 'ok', 'probability': 0.7, 'status_code': 201},
-            {'payload': 'moved', 'probability': 0.1, 'status_code': 301},
-            {'payload': 'your fault', 'probability': 0.1, 'status_code': 401},
-            {'payload': 'my fault', 'probability': 0.1, 'status_code': 501},
-        ]
+        with open('example/marten.yaml', 'r') as data_file:
+            bootstrap_data = yaml.load(data_file.read())
     except:
         raise
     HttpStatusCodes.bootstrap(db, bootstrap_data)

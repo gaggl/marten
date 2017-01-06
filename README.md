@@ -16,8 +16,8 @@ Http chaos monkey server.
     
     export AUTO_RELOAD=True
     export DEBUG=True
-    export HOST=True
-    export PORT=True
+    export HOST=127.0.0.1
+    export PORT=5000
     
 ## RUN
 

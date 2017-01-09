@@ -16,6 +16,7 @@ SETTINGS = {
     'DOMAIN': {
         'codes': HttpStatusCodes._eve_schema['codes'],
     },
+    'ENFORCE_IF_MATCH': False,
     'ITEM_METHODS': ['GET', 'PATCH'],
     'RESOURCE_METHODS': ['GET'],
     'SWAGGER_INFO': {

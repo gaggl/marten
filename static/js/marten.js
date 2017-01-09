@@ -63,6 +63,11 @@ d3.json(api_endpoint, function(dataset) {
         .attr('y', legendRectSize - legendSpacing)
         .text(function(d) { return d; });
 
+    $.fn.editable.defaults.ajaxOptions = {
+        type: 'PATCH',
+        dataType: 'json',
+        contentType: 'application/json',
+    };
     $.fn.editable.defaults.mode = 'inline';
     $.fn.editable.defaults.type = 'text';
     $.fn.editable.defaults.validate = function (value) {
@@ -77,12 +82,6 @@ d3.json(api_endpoint, function(dataset) {
     $table.on('editable-init.bs.table', function() {
         $('.editable').on('init', function(e, edt) {
             var row = $.grep(dataset._items, function(e) { return e._id == edt.options.pk })[0]
-            edt.options.ajaxOptions = {
-                type: 'PATCH',
-                dataType: 'json',
-                contentType: 'application/json',
-                headers: {'If-Match': row._etag}
-            };
             edt.options.url = api_endpoint + '/' + row._id;
         })
     });

@@ -28,29 +28,32 @@ probability.
     ---
     - status_code: 200
       payload:
-        body: ok
+        body: |-
+         { "ok": "bla" }
         headers:
           Content-Type: 'application/json'
       probability: 0.7
     - status_code: 300
       payload:
-        body: moved
+        body: |-
+         { "moved": "bla" }
         headers:
           Content-Type: 'application/json'
       probability: 0.1
     - status_code: 400
       payload:
-        body: your fault
+        body: |-
+         { "your": "fault" }
         headers:
           Content-Type: 'application/json'
       probability: 0.1
     - status_code: 500
       payload:
-        body: my fault
+        body: |-
+         { "my": "fault" }
         headers:
           Content-Type: 'application/json'
       probability: 0.1
-
 
 If you provide a marten.yaml in the same directory as run.py, the contents is
 imported at bootstrap, otherwise the defaults from the example get bootstrapped).

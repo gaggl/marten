@@ -1,0 +1,30 @@
+---
+  - status_code: 200
+    payload:
+      body: |-
+        { "ok": "bla" }
+      headers:
+        Content-Type: 'application/json'
+    probability: 0.7
+  - status_code: 300
+    payload:
+      body: |-
+        { "moved": "bla" }
+      headers:
+        Content-Type: 'application/json'
+    probability: 0.1
+  - status_code: 400
+    payload:
+      body: |-
+        { "your": "fault" }
+      headers:
+        Content-Type: 'application/json'
+    probability: 0.1
+  - status_code: 500
+    payload:
+    body: |-
+      { "my": "fault" }
+      headers:
+        Content-Type: 'application/json'
+    probability: 0.1
+

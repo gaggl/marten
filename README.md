@@ -3,71 +3,27 @@
 Marten provides a way to test your upstream application or proxy server by randomly returning HTTP codes with a predefined
 probability.
 
-## Requirements
-    eve
-    eve-swagger
-    eve-sqlalchemy
-    
-## Setup
-    virtualenv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
+Marten is an extension of toxiproxy proper with 1 additional toxic, namely the status toxic. This allows the user to modify
+http response bodies.
+
+## Update Dependencies
+
+    go get -u github.com/Shopify/toxiproxy
+    govendor update +local
+
+## Buid
+    go build
 
 ## Config
-    
-### CLI
-    export AUTO_RELOAD=False
-    export DEBUG=False
-    export HOST=127.0.0.1
-    export PORT=5000
 
-### HTTP Return Code Bingo
+As marten is an extension of toxiproxy, so we like to point you to its [manual](https://github.com/Shopify/toxiproxy).
 
-    cp example/marten.yaml .
-    cat marten.yaml
-    ---
-    - status_code: 200
-      payload:
-        body: |-
-         { "ok": "bla" }
-        headers:
-          Content-Type: 'application/json'
-      probability: 0.7
-    - status_code: 300
-      payload:
-        body: |-
-         { "moved": "bla" }
-        headers:
-          Content-Type: 'application/json'
-      probability: 0.1
-    - status_code: 400
-      payload:
-        body: |-
-         { "your": "fault" }
-        headers:
-          Content-Type: 'application/json'
-      probability: 0.1
-    - status_code: 500
-      payload:
-        body: |-
-         { "my": "fault" }
-        headers:
-          Content-Type: 'application/json'
-      probability: 0.1
-
-If you provide a marten.yaml in the same directory as run.py, the contents is
-imported at bootstrap, otherwise the defaults from the example get bootstrapped).
-
-These return codes can also be changed on the fly while viewing the dashboard or using the API endpoints.
+```
+$ toxiproxy-cli toxic add marten -t response [-a code=500] [-a text="foobarbqq"] [-a body='{ "foo": "bar" }']
+```
 
 ## Run
 
-    ./run.py
-    
-## Endpoints
+    ./marten [ --config example/marten.json ]
 
-    http://$HOST:$PORT/* => HTTP Return Code Bingo.
-    http://$HOST:$PORT/marten/v1 => API to change config on the fly.
-    http://$HOST:$PORT/marten/api-docs => Swagger json definition.
-    http://$HOST:$PORT/marten/static => Css, img, js endpoint.
-    http://$HOST:$PORT/marten/status => Usage dashboard.
+

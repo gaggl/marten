@@ -1,4 +1,4 @@
-package toxics 
+package toxics
 
 import (
 	"bufio"
@@ -11,9 +11,9 @@ import (
 	"github.com/Shopify/toxiproxy/toxics"
 )
 
-type HttpResponseToxic struct{
-	HttpBody string `json:"body"`
-	HttpStatusCode int `json:"code"`
+type HttpResponseToxic struct {
+	HttpBody       string `json:"body"`
+	HttpStatusCode int    `json:"code"`
 	HttpStatusText string `json:"text"`
 }
 
@@ -25,7 +25,7 @@ func (t *HttpResponseToxic) ModifyResponse(resp *http.Response) {
 	if t.HttpStatusCode > 0 {
 		resp.StatusCode = t.HttpStatusCode
 	}
-        if t.HttpStatusText != "" {
+	if t.HttpStatusText != "" {
 		resp.Status = t.HttpStatusText
 	}
 }

@@ -14,7 +14,7 @@ clean:
 
 test:
 	echo "Testing with" `go version`
-	GOMAXPROCS=4 GOPATH=$(COMBINED_GOPATH) go test -cover ./toxics
+	GOPATH=$(COMBINED_GOPATH) go test -coverprofile=coverage.out -v .
 
 package:
 	mkdir -p release

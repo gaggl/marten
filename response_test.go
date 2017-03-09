@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/Shopify/toxiproxy"
@@ -30,21 +31,16 @@ func ToxicToJson(t *testing.T, name, typeName, stream string, toxic toxics.Toxic
 }
 
 func DoResponseTest(t *testing.T, downResponse *HttpResponseToxic) (int, string, string) {
-	srv := &http.Server{Addr: ":8080", Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{"hello": "world"}`)
-	})}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			t.Errorf("Httpserver: ListenAndServe() error: %s", err)
-		}
-	}()
+	}))
+	defer ts.Close()
 
 	proxy := toxiproxy.NewProxy()
 	proxy.Name = "test"
 	proxy.Listen = "localhost:0"
-	proxy.Upstream = "localhost:8080"
+	proxy.Upstream = ts.Listener.Addr().String()
 	proxy.Start()
 
 	if downResponse == nil {
@@ -66,9 +62,8 @@ func DoResponseTest(t *testing.T, downResponse *HttpResponseToxic) (int, string,
 		log.Fatal(err)
 	}
 
-	proxy.Toxics.RemoveToxic("latency_down")
+	proxy.Toxics.RemoveToxic("response_down")
 	proxy.Stop()
-	log.Printf("main: done. exiting")
 	return response.StatusCode, response.Status, string(responseBody)
 }
 

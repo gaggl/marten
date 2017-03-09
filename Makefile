@@ -14,7 +14,7 @@ clean:
 
 test:
 	echo "Testing with" `go version`
-	GOPATH=$(COMBINED_GOPATH) go test -coverprofile=coverage.out -v -race .
+	GOPATH=$(COMBINED_GOPATH) go test -v -race .
 
 package:
 	mkdir -p release

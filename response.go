@@ -14,7 +14,7 @@ import (
 type HttpResponseToxic struct {
 	HttpBody       string `json:"body"`
 	HttpStatusCode int    `json:"code"`
-	HttpStatusText string `json:"text"`
+	HttpStatusText string `json:"status"`
 }
 
 func (t *HttpResponseToxic) ModifyResponse(resp *http.Response) {

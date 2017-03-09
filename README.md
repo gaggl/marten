@@ -19,7 +19,7 @@ http response bodies.
 As marten is an extension of toxiproxy, so we like to point you to its [manual](https://github.com/Shopify/toxiproxy).
 
 ```
-$ toxiproxy-cli toxic add marten -t response [-a code=500] [-a text="foobarbqq"] [-a body='{ "foo": "bar" }']
+$ toxiproxy-cli toxic add marten -t response [-a code=500] [-a status="foobarbqq"] [-a body='{ "foo": "bar" }'] [--tox 0-1.0]
 ```
 
 ## Run

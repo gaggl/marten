@@ -62,8 +62,6 @@ func DoResponseTest(t *testing.T, downResponse *HttpResponseToxic) (int, string,
 		log.Fatal(err)
 	}
 
-	proxy.Toxics.RemoveToxic("response_down")
-	proxy.Stop()
 	return response.StatusCode, response.Status, string(responseBody)
 }
 

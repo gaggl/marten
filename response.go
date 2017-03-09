@@ -1,4 +1,4 @@
-package marten
+package main
 
 import (
 	"bufio"

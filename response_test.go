@@ -1,87 +1,18 @@
-package marten_test
+package main
 
 import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"net"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"testing"
 
-	"bufio"
 	"github.com/Shopify/toxiproxy"
 	"github.com/Shopify/toxiproxy/toxics"
-	"github.com/gaggl/marten"
-	tomb "gopkg.in/tomb.v1"
+	"github.com/stretchr/testify/assert"
 )
-
-func NewTestProxy(name, upstream string) *toxiproxy.Proxy {
-	proxy := toxiproxy.NewProxy()
-
-	proxy.Name = name
-	proxy.Listen = "localhost:0"
-	proxy.Upstream = upstream
-
-	return proxy
-}
-
-func WithEchoServer(t *testing.T, f func(string, chan []byte)) {
-	ln, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatal("Failed to create TCP server", err)
-	}
-
-	defer ln.Close()
-
-	response := make(chan []byte, 1)
-	tomb := tomb.Tomb{}
-
-	go func() {
-		defer tomb.Done()
-		src, err := ln.Accept()
-		if err != nil {
-			select {
-			case <-tomb.Dying():
-			default:
-				t.Fatal("Failed to accept client")
-			}
-			return
-		}
-
-		ln.Close()
-
-		scan := bufio.NewScanner(src)
-		if scan.Scan() {
-			received := append(scan.Bytes(), '\n')
-			response <- received
-
-			src.Write(received)
-		}
-	}()
-
-	f(ln.Addr().String(), response)
-
-	tomb.Killf("Function body finished")
-	ln.Close()
-	tomb.Wait()
-
-	close(response)
-}
-
-func WithEchoProxy(t *testing.T, f func(proxy net.Conn, response chan []byte, proxyServer *toxiproxy.Proxy)) {
-	WithEchoServer(t, func(upstream string, response chan []byte) {
-		proxy := NewTestProxy("test", upstream)
-		proxy.Start()
-
-		conn, err := net.Dial("tcp", proxy.Listen)
-		if err != nil {
-			t.Error("Unable to dial TCP server", err)
-		}
-
-		f(conn, response, proxy)
-
-		proxy.Stop()
-	})
-}
 
 func ToxicToJson(t *testing.T, name, typeName, stream string, toxic toxics.Toxic) io.Reader {
 	data := map[string]interface{}{
@@ -98,58 +29,81 @@ func ToxicToJson(t *testing.T, name, typeName, stream string, toxic toxics.Toxic
 	return bytes.NewReader(request)
 }
 
-func DoResponseTest(t *testing.T, downResponse *marten.HttpResponseToxic) {
-	WithEchoProxy(t, func(conn net.Conn, response chan []byte, proxy *toxiproxy.Proxy) {
-		if downResponse == nil {
-			downResponse = &marten.HttpResponseToxic{}
-		} else {
-			_, err := proxy.Toxics.AddToxicJson(ToxicToJson(t, "response_down", "response", "downstream", downResponse))
-			if err != nil {
-				t.Error("AddToxicJson returned error:", err)
-			}
+func DoResponseTest(t *testing.T, downResponse *HttpResponseToxic) (int, string, string) {
+	srv := &http.Server{Addr: ":8080", Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"hello": "world"}`)
+	})}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			t.Errorf("Httpserver: ListenAndServe() error: %s", err)
 		}
+	}()
 
-		msg := []byte("hello world " + "\n")
+	proxy := toxiproxy.NewProxy()
+	proxy.Name = "test"
+	proxy.Listen = "localhost:0"
+	proxy.Upstream = "localhost:8080"
+	proxy.Start()
 
-		_, err := conn.Write(msg)
+	if downResponse == nil {
+		downResponse = &HttpResponseToxic{}
+	} else {
+		_, err := proxy.Toxics.AddToxicJson(ToxicToJson(t, "response_down", "response", "downstream", downResponse))
 		if err != nil {
-			t.Error("Failed writing to TCP server", err)
+			t.Error("AddToxicJson returned error:", err)
 		}
+	}
 
-		resp := <-response
-		if !bytes.Equal(resp, msg) {
-			t.Error("Server didn't read correct bytes from client:", string(resp))
-		}
+	response, err := http.Get("http://" + proxy.Listen)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		scan := bufio.NewScanner(conn)
-		if scan.Scan() {
-			resp = append(scan.Bytes(), '\n')
-			if !bytes.Equal(resp, msg) {
-				t.Error("Client didn't read correct bytes from server:", string(resp))
-			}
-		}
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		proxy.Toxics.RemoveToxic("response_down")
-
-		err = conn.Close()
-		if err != nil {
-			t.Error("Failed to close TCP connection", err)
-		}
-	})
+	proxy.Toxics.RemoveToxic("latency_down")
+	proxy.Stop()
+	log.Printf("main: done. exiting")
+	return response.StatusCode, response.Status, string(responseBody)
 }
 
 func TestDownstreamResponse(t *testing.T) {
-	DoResponseTest(t, nil)
-}
+	assert := assert.New(t)
 
-func TestHttpBody(t *testing.T) {
-	DoResponseTest(t, &marten.HttpResponseToxic{HttpBody: "{ 'foo': 'bar'}"})
+	code, status, body := DoResponseTest(t, nil)
+	assert.Equal(200, code, "This test should not have manipultated the status code")
+	assert.Equal(`200 OK`, status, "This test should not have manipultated the status")
+	assert.Equal(`{"hello": "world"}`, body, "This test should not have manipultated the body")
 }
 
 func TestHttpStatusCode(t *testing.T) {
-	DoResponseTest(t, &marten.HttpResponseToxic{HttpStatusCode: 418})
+	assert := assert.New(t)
+
+	code, status, body := DoResponseTest(t, &HttpResponseToxic{HttpStatusCode: 418})
+	assert.Equal(418, code, "This test should have manipultated the status code")
+	assert.Equal(`418 200 OK`, status, "This test should not have manipultated the status")
+	assert.Equal(`{"hello": "world"}`, body, "This test should not have manipultated the body")
 }
 
 func TestHttpStatusText(t *testing.T) {
-	DoResponseTest(t, &marten.HttpResponseToxic{HttpStatusText: "foo bar"})
+	assert := assert.New(t)
+
+	code, status, body := DoResponseTest(t, &HttpResponseToxic{HttpStatusText: "FOO"})
+	assert.Equal(200, code, "This test should not have manipultated the status code")
+	assert.Equal(`200 FOO`, status, "This test should have manipultated the status")
+	assert.Equal(`{"hello": "world"}`, body, "This test should not have manipultated the body")
+}
+
+func TestHttpBody(t *testing.T) {
+	assert := assert.New(t)
+
+	code, status, body := DoResponseTest(t, &HttpResponseToxic{HttpBody: "{'foo': 'bar'}"})
+	assert.Equal(200, code, "This test should not have manipultated the status code")
+	assert.Equal(`200 OK`, status, "This test should not have manipultated the status")
+	assert.Equal(`{'foo': 'bar'}`, body, "This test should have manipultated the body")
 }

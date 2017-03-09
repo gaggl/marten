@@ -21,4 +21,5 @@ package:
 	GOOS=darwin GOARCH=amd64 GOPATH=$(COMBINED_GOPATH) go build -ldflags="-X github.com/Shopify/toxiproxy.Version=$(VERSION)" -o "release/marten_darwin_amd64" .
 	GOOS=linux GOARCH=amd64 GOPATH=$(COMBINED_GOPATH) go build -ldflags="-X github.com/Shopify/toxiproxy.Version=$(VERSION)" -o "release/marten_linux_amd64" .
 	GOOS=windows GOARCH=amd64 GOPATH=$(COMBINED_GOPATH) go build -ldflags="-X github.com/Shopify/toxiproxy.Version=$(VERSION)" -o "release/marten_windows_amd64.exe" .
-release: clean package
+
+release: clean test package

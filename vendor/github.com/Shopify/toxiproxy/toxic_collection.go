@@ -12,16 +12,13 @@ import (
 	"github.com/Shopify/toxiproxy/toxics"
 )
 
-// ToxicCollection contains a list of toxics that are chained together. Each proxy
-// has its own collection. A hidden noop toxic is always maintained at the beginning
-// of each chain so toxics have a method of pausing incoming data (by interrupting
-// the preceding toxic).
 type ToxicCollection struct {
 	sync.Mutex
 
 	noop   *toxics.ToxicWrapper
 	proxy  *Proxy
 	chain  [][]*toxics.ToxicWrapper
+	toxics [][]*toxics.ToxicWrapper
 	links  map[string]*ToxicLink
 }
 
@@ -33,11 +30,14 @@ func NewToxicCollection(proxy *Proxy) *ToxicCollection {
 		},
 		proxy:  proxy,
 		chain:  make([][]*toxics.ToxicWrapper, stream.NumDirections),
+		toxics: make([][]*toxics.ToxicWrapper, stream.NumDirections),
 		links:  make(map[string]*ToxicLink),
 	}
 	for dir := range collection.chain {
 		collection.chain[dir] = make([]*toxics.ToxicWrapper, 1, toxics.Count()+1)
 		collection.chain[dir][0] = collection.noop
+
+		collection.toxics[dir] = make([]*toxics.ToxicWrapper, 0, toxics.Count())
 	}
 	return collection
 }
@@ -46,11 +46,12 @@ func (c *ToxicCollection) ResetToxics() {
 	c.Lock()
 	defer c.Unlock()
 
-	// Remove all but the first noop toxic
-	for dir := range c.chain {
-		for len(c.chain[dir]) > 1 {
-			c.chainRemoveToxic(c.chain[dir][1])
+	for dir := range c.toxics {
+		for _, toxic := range c.toxics[dir] {
+			// TODO do this in bulk
+			c.chainRemoveToxic(toxic)
 		}
+		c.toxics[dir] = c.toxics[dir][:0]
 	}
 }
 
@@ -58,7 +59,14 @@ func (c *ToxicCollection) GetToxic(name string) *toxics.ToxicWrapper {
 	c.Lock()
 	defer c.Unlock()
 
-	return c.findToxicByName(name)
+	for dir := range c.toxics {
+		for _, toxic := range c.toxics[dir] {
+			if toxic.Name == name {
+				return toxic
+			}
+		}
+	}
+	return nil
 }
 
 func (c *ToxicCollection) GetToxicArray() []toxics.Toxic {
@@ -66,12 +74,8 @@ func (c *ToxicCollection) GetToxicArray() []toxics.Toxic {
 	defer c.Unlock()
 
 	result := make([]toxics.Toxic, 0)
-	for dir := range c.chain {
-		for i, toxic := range c.chain[dir] {
-			if i == 0 {
-				// Skip the first noop toxic, it should not be visible
-				continue
-			}
+	for dir := range c.toxics {
+		for _, toxic := range c.toxics[dir] {
 			result = append(result, toxic)
 		}
 	}
@@ -112,9 +116,12 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 		return nil, ErrInvalidToxicType
 	}
 
-	found := c.findToxicByName(wrapper.Name)
-	if found != nil {
-		return nil, ErrToxicAlreadyExists
+	for dir := range c.toxics {
+		for _, toxic := range c.toxics[dir] {
+			if toxic.Name == wrapper.Name {
+				return nil, ErrToxicAlreadyExists
+			}
+		}
 	}
 
 	// Parse attributes because we now know the toxics type.
@@ -128,6 +135,7 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 		return nil, joinError(err, ErrBadRequestBody)
 	}
 
+	c.toxics[wrapper.Direction] = append(c.toxics[wrapper.Direction], wrapper)
 	c.chainAddToxic(wrapper)
 	return wrapper, nil
 }
@@ -136,23 +144,26 @@ func (c *ToxicCollection) UpdateToxicJson(name string, data io.Reader) (*toxics.
 	c.Lock()
 	defer c.Unlock()
 
-	toxic := c.findToxicByName(name)
-	if toxic != nil {
-		attrs := &struct {
-			Attributes interface{} `json:"attributes"`
-			Toxicity   float32     `json:"toxicity"`
-		}{
-			toxic.Toxic,
-			toxic.Toxicity,
-		}
-		err := json.NewDecoder(data).Decode(attrs)
-		if err != nil {
-			return nil, joinError(err, ErrBadRequestBody)
-		}
-		toxic.Toxicity = attrs.Toxicity
+	for dir := range c.toxics {
+		for _, toxic := range c.toxics[dir] {
+			if toxic.Name == name {
+				attrs := &struct {
+					Attributes interface{} `json:"attributes"`
+					Toxicity   float32     `json:"toxicity"`
+				}{
+					toxic.Toxic,
+					toxic.Toxicity,
+				}
+				err := json.NewDecoder(data).Decode(attrs)
+				if err != nil {
+					return nil, joinError(err, ErrBadRequestBody)
+				}
+				toxic.Toxicity = attrs.Toxicity
 
-		c.chainUpdateToxic(toxic)
-		return toxic, nil
+				c.chainUpdateToxic(toxic)
+				return toxic, nil
+			}
+		}
 	}
 	return nil, ErrToxicNotFound
 }
@@ -161,10 +172,15 @@ func (c *ToxicCollection) RemoveToxic(name string) error {
 	c.Lock()
 	defer c.Unlock()
 
-	toxic := c.findToxicByName(name)
-	if toxic != nil {
-		c.chainRemoveToxic(toxic)
-		return nil
+	for dir := range c.toxics {
+		for index, toxic := range c.toxics[dir] {
+			if toxic.Name == name {
+				c.toxics[dir] = append(c.toxics[dir][:index], c.toxics[dir][index+1:]...)
+
+				c.chainRemoveToxic(toxic)
+				return nil
+			}
+		}
 	}
 	return ErrToxicNotFound
 }
@@ -185,21 +201,6 @@ func (c *ToxicCollection) RemoveLink(name string) {
 }
 
 // All following functions assume the lock is already grabbed
-func (c *ToxicCollection) findToxicByName(name string) *toxics.ToxicWrapper {
-	for dir := range c.chain {
-		for i, toxic := range c.chain[dir] {
-			if i == 0 {
-				// Skip the first noop toxic, it has no name
-				continue
-			}
-			if toxic.Name == name {
-				return toxic
-			}
-		}
-	}
-	return nil
-}
-
 func (c *ToxicCollection) chainAddToxic(toxic *toxics.ToxicWrapper) {
 	dir := toxic.Direction
 	toxic.Index = len(c.chain[dir])

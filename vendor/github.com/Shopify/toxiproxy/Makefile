@@ -2,7 +2,7 @@ SERVER_NAME=toxiproxy-server
 CLI_NAME=toxiproxy-cli
 VERSION=$(shell cat VERSION)
 DEB=pkg/toxiproxy_$(VERSION)_amd64.deb
-GODEP_PATH=$(shell pwd)/vendor
+GODEP_PATH=$(shell pwd)/Godeps/_workspace
 ORIGINAL_PATH=$(shell echo $(GOPATH))
 COMBINED_GOPATH=$(GODEP_PATH):$(ORIGINAL_PATH)
 
@@ -19,7 +19,7 @@ darwin: tmp/build/$(SERVER_NAME)-darwin-amd64 tmp/build/$(CLI_NAME)-darwin-amd64
 linux: tmp/build/$(SERVER_NAME)-linux-amd64 tmp/build/$(CLI_NAME)-linux-amd64
 windows: tmp/build/$(SERVER_NAME)-windows-amd64.exe tmp/build/$(CLI_NAME)-windows-amd64.exe
 
-release: all docker-release
+release: all docker
 
 clean:
 	rm -f tmp/build/*
@@ -28,7 +28,6 @@ clean:
 	rm -f *.deb
 
 test:
-	echo "Testing with" `go version`
 	GOMAXPROCS=4 GOPATH=$(COMBINED_GOPATH) go test -v -race ./...
 
 tmp/build/$(SERVER_NAME)-linux-amd64:
@@ -67,10 +66,7 @@ $(DEB): tmp/build/$(SERVER_NAME)-linux-amd64 tmp/build/$(CLI_NAME)-linux-amd64
 		./share/toxiproxy.conf=/etc/init/toxiproxy.conf
 
 docker:
-	docker build --tag="shopify/toxiproxy:git" .
-
-docker-release: linux
-	docker build --rm=true --tag="shopify/toxiproxy:$(VERSION)" .
-	docker tag shopify/toxiproxy:$(VERSION) shopify/toxiproxy:latest
+	docker build --tag="shopify/toxiproxy:$(VERSION)" .
+	docker tag -f shopify/toxiproxy:$(VERSION) shopify/toxiproxy:latest
 	docker push shopify/toxiproxy:$(VERSION)
 	docker push shopify/toxiproxy:latest

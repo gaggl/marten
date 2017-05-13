@@ -1,8 +1,8 @@
-FROM golang:1.4
+FROM alpine
 
-ADD . /app/src/github.com/Shopify/toxiproxy
-RUN cd /app/src/github.com/Shopify/toxiproxy && GOPATH=/app/src/github.com/Shopify/toxiproxy/Godeps/_workspace:/app go build -ldflags="-X github.com/Shopify/toxiproxy.Version $(cat VERSION)" -o /app/toxiproxy ./cmd
+COPY tmp/build/toxiproxy-server-linux-amd64 /go/bin/toxiproxy
+COPY tmp/build/toxiproxy-cli-linux-amd64 /go/bin/toxiproxy-cli
 
 EXPOSE 8474
-ENTRYPOINT ["/app/toxiproxy"]
+ENTRYPOINT ["/go/bin/toxiproxy"]
 CMD ["-host=0.0.0.0"]

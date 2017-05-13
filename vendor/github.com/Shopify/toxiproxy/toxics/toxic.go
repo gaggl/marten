@@ -26,9 +26,22 @@ type Toxic interface {
 	Pipe(*ToxicStub)
 }
 
+type CleanupToxic interface {
+	// Cleanup is called before a toxic is removed.
+	Cleanup(*ToxicStub)
+}
+
 type BufferedToxic interface {
 	// Defines the size of buffer this toxic should use
 	GetBufferSize() int
+}
+
+// Stateful toxics store a per-connection state object on the ToxicStub.
+// The state is created once when the toxic is added and persists until the
+// toxic is removed or the connection is closed.
+type StatefulToxic interface {
+	// Creates a new object to store toxic state in
+	NewState() interface{}
 }
 
 type ToxicWrapper struct {
@@ -45,6 +58,7 @@ type ToxicWrapper struct {
 type ToxicStub struct {
 	Input     <-chan *stream.StreamChunk
 	Output    chan<- *stream.StreamChunk
+	State     interface{}
 	Interrupt chan struct{}
 	running   chan struct{}
 	closed    chan struct{}
@@ -83,9 +97,20 @@ func (s *ToxicStub) InterruptToxic() bool {
 	}
 }
 
+func (s *ToxicStub) Closed() bool {
+	select {
+	case <-s.closed:
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *ToxicStub) Close() {
-	close(s.closed)
-	close(s.Output)
+	if !s.Closed() {
+		close(s.closed)
+		close(s.Output)
+	}
 }
 
 var ToxicRegistry map[string]Toxic

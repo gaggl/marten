@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/Shopify/toxiproxy/toxics"
 	"github.com/Sirupsen/logrus"
@@ -22,11 +23,35 @@ func NewServer() *ApiServer {
 	}
 }
 
+func (server *ApiServer) PopulateConfig(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": filename,
+			"error":  err,
+		}).Error("Error reading config file")
+	} else {
+		proxies, err := server.Collection.PopulateJson(file)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"config": filename,
+				"error":  err,
+			}).Error("Failed to populate proxies from file")
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"config":  filename,
+				"proxies": len(proxies),
+			}).Info("Populated proxies from file")
+		}
+	}
+}
+
 func (server *ApiServer) Listen(host string, port string) {
 	r := mux.NewRouter()
 	r.HandleFunc("/reset", server.ResetState).Methods("POST")
 	r.HandleFunc("/proxies", server.ProxyIndex).Methods("GET")
 	r.HandleFunc("/proxies", server.ProxyCreate).Methods("POST")
+	r.HandleFunc("/populate", server.Populate).Methods("POST")
 	r.HandleFunc("/proxies/{proxy}", server.ProxyShow).Methods("GET")
 	r.HandleFunc("/proxies/{proxy}", server.ProxyUpdate).Methods("POST")
 	r.HandleFunc("/proxies/{proxy}", server.ProxyDelete).Methods("DELETE")
@@ -127,6 +152,36 @@ func (server *ApiServer) ProxyCreate(response http.ResponseWriter, request *http
 	_, err = response.Write(data)
 	if err != nil {
 		logrus.Warn("ProxyCreate: Failed to write response to client", err)
+	}
+}
+
+func (server *ApiServer) Populate(response http.ResponseWriter, request *http.Request) {
+	proxies, err := server.Collection.PopulateJson(request.Body)
+
+	apiErr, ok := err.(*ApiError)
+	if !ok && err != nil {
+		logrus.Warn("Error did not include status code: ", err)
+		apiErr = &ApiError{err.Error(), http.StatusInternalServerError}
+	}
+
+	data, err := json.Marshal(struct {
+		*ApiError `json:",omitempty"`
+		Proxies   []proxyToxics `json:"proxies"`
+	}{apiErr, proxiesWithToxics(proxies)})
+	if apiError(response, err) {
+		return
+	}
+
+	responseCode := http.StatusCreated
+	if apiErr != nil {
+		responseCode = apiErr.StatusCode
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(responseCode)
+	_, err = response.Write(data)
+	if err != nil {
+		logrus.Warn("Populate: Failed to write response to client", err)
 	}
 }
 
@@ -323,7 +378,7 @@ func (server *ApiServer) Version(response http.ResponseWriter, request *http.Req
 }
 
 type ApiError struct {
-	Message    string `json:"title"`
+	Message    string `json:"error"`
 	StatusCode int    `json:"status"`
 }
 
@@ -356,7 +411,7 @@ var (
 func apiError(resp http.ResponseWriter, err error) bool {
 	obj, ok := err.(*ApiError)
 	if !ok && err != nil {
-		logrus.Warn("Error did not include status code:", err)
+		logrus.Warn("Error did not include status code: ", err)
 		obj = &ApiError{err.Error(), http.StatusInternalServerError}
 	}
 
@@ -366,7 +421,7 @@ func apiError(resp http.ResponseWriter, err error) bool {
 
 	data, err2 := json.Marshal(obj)
 	if err2 != nil {
-		logrus.Warn("Error json encoding error (╯°□°）╯︵ ┻━┻", err2)
+		logrus.Warn("Error json encoding error (╯°□°）╯︵ ┻━┻ ", err2)
 	}
 	resp.Header().Set("Content-Type", "application/json")
 	http.Error(resp, string(data), obj.StatusCode)
@@ -374,11 +429,20 @@ func apiError(resp http.ResponseWriter, err error) bool {
 	return true
 }
 
-func proxyWithToxics(proxy *Proxy) (result struct {
+type proxyToxics struct {
 	*Proxy
 	Toxics []toxics.Toxic `json:"toxics"`
-}) {
+}
+
+func proxyWithToxics(proxy *Proxy) (result proxyToxics) {
 	result.Proxy = proxy
 	result.Toxics = proxy.Toxics.GetToxicArray()
+	return
+}
+
+func proxiesWithToxics(proxies []*Proxy) (result []proxyToxics) {
+	for _, proxy := range proxies {
+		result = append(result, proxyWithToxics(proxy))
+	}
 	return
 }

@@ -1,4 +1,18 @@
-# 2.0.0rc2 (Unreleased)
+# 2.1.1
+
+* Fix timeout toxic causing hang (issue #159)
+
+# 2.1.0
+
+* Add -config server option to populate on startup #154
+* Updated CLI for scriptability #133
+* Add `/populate` endpoint to server #111
+* Change error responses from `title` to `error`
+* Allow hostname to be specified in CLI #129
+* Add support for stateful toxics #127
+* Add limit_data toxic
+
+# 2.0.0
 
 * Add CLI (`toxiproxy-cli`) and rename server binary to `toxiproxy-server` #93
 * Fix removing a timeout toxic causing API to hang #89
@@ -6,9 +20,6 @@
 * Fix multiple latency toxics not accumulating #94
 * Change default toxic name to `<type>_<stream>` #96
 * Nest toxic attributes rather than having a flat structure #98
-
-# 2.0.0rc1 (Unreleased)
-
 * 2.0 RFC: #54 and PR #62
     * Change toxic API endpoints to an Add/Update/Remove structure
     * Remove `enabled` field, and add `name` and `type` fields to toxics

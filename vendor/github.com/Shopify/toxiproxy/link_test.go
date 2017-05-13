@@ -4,8 +4,10 @@ import (
 	"encoding/binary"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/Shopify/toxiproxy/stream"
+	"github.com/Shopify/toxiproxy/testhelper"
 	"github.com/Shopify/toxiproxy/toxics"
 )
 
@@ -190,13 +192,34 @@ func TestToxicity(t *testing.T) {
 	toxic.Toxic.(*toxics.TimeoutToxic).Timeout = 100
 	collection.chainUpdateToxic(toxic)
 
-	// Toxic should timeout after 100ms
-	n, err = link.input.Write([]byte{42})
-	if n != 1 || err != nil {
-		t.Fatalf("Write failed: %d %v", n, err)
+	err = testhelper.TimeoutAfter(150*time.Millisecond, func() {
+		n, err = link.input.Write([]byte{42})
+		if n != 1 || err != nil {
+			t.Fatalf("Write failed: %d %v", n, err)
+		}
+		n, err = link.output.Read(buf)
+		if n != 0 || err != io.EOF {
+			t.Fatalf("Read did not get EOF: %d %v", n, err)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	n, err = link.output.Read(buf)
-	if n != 0 || err != io.EOF {
-		t.Fatalf("Read did not get EOF: %d %v", n, err)
+}
+
+func TestStateCreated(t *testing.T) {
+	collection := NewToxicCollection(nil)
+	link := NewToxicLink(nil, collection, stream.Downstream)
+	go link.stubs[0].Run(collection.chain[stream.Downstream][0])
+	collection.links["test"] = link
+
+	collection.chainAddToxic(&toxics.ToxicWrapper{
+		Toxic:     new(toxics.LimitDataToxic),
+		Type:      "limit_data",
+		Direction: stream.Downstream,
+		Toxicity:  1,
+	})
+	if link.stubs[len(link.stubs)-1].State == nil {
+		t.Fatalf("New toxic did not have state object created.")
 	}
 }

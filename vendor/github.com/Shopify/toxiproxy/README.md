@@ -1,4 +1,7 @@
 # Toxiproxy
+[![GitHub release](https://img.shields.io/github/release/Shopify/toxiproxy.svg)](https://github.com/Shopify/toxiproxy/releases/latest)
+[![Build Status](https://img.shields.io/circleci/project/github/Shopify/toxiproxy/master.svg)](https://circleci.com/gh/Shopify/toxiproxy/tree/master)
+[![IRC Channel](https://img.shields.io/badge/chat-on%20freenode-brightgreen.svg)](https://kiwiirc.com/client/irc.freenode.net/#toxiproxy)
 
 ![](http://i.imgur.com/sOaNw0o.png)
 
@@ -58,6 +61,7 @@ stopping you from creating a client in any other language (see
   1. [Proxy fields](#proxy-fields)
   2. [Toxic fields](#toxic-fields)
   3. [Endpoints](#endpoints)
+  4. [Populating Proxies](#populating-proxies)
 7. [CLI example](#cli-example)
 8. [FAQ](#frequently-asked-questions)
 9. [Development](#development)
@@ -73,16 +77,16 @@ development and CI environments.
 
 * [toxiproxy-ruby](https://github.com/Shopify/toxiproxy-ruby)
 * [toxiproxy-go](https://github.com/Shopify/toxiproxy/tree/master/client)
+* [toxiproxy-python](https://github.com/douglas/toxiproxy-python)
 * [toxiproxy.net](https://github.com/mdevilliers/Toxiproxy.Net)
 * [toxiproxy-php-client](https://github.com/ihsw/toxiproxy-php-client)
-* [toxiproxy-node](https://github.com/dlion/toxiproxy-node)
+* [toxiproxy-node-client](https://github.com/ihsw/toxiproxy-node-client)
 * [toxiproxy-java](https://github.com/trekawek/toxiproxy-java)
 
 ## Example
 
 Let's walk through an example with a Rails application. Note that Toxiproxy is
-in no way tied to Ruby, it's just been our first use case and it's currently the
-only language that has a client. You can see the full example at
+in no way tied to Ruby, it's just been our first use case. You can see the full example at
 [Sirupsen/toxiproxy-rails-example](https://github.com/Sirupsen/toxiproxy-rails-example).
 To get started right away, jump down to [Usage](#usage).
 
@@ -179,7 +183,7 @@ Full example application is at
 
 ## Usage
 
-Configuring a project to use Toxiproxy consists of four steps:
+Configuring a project to use Toxiproxy consists of three steps:
 
 1. Installing Toxiproxy
 2. Populating Toxiproxy
@@ -195,8 +199,8 @@ binaries and system packages for your architecture.
 **Ubuntu**
 
 ```bash
-$ wget -O toxiproxy-1.2.1.deb https://github.com/Shopify/toxiproxy/releases/download/v1.2.1/toxiproxy_1.2.1_amd64.deb
-$ sudo dpkg -i toxiproxy-1.2.1.deb
+$ wget -O toxiproxy-2.1.1.deb https://github.com/Shopify/toxiproxy/releases/download/v2.1.1/toxiproxy_2.1.1_amd64.deb
+$ sudo dpkg -i toxiproxy-2.1.1.deb
 $ sudo service toxiproxy start
 ```
 
@@ -209,7 +213,7 @@ $ brew install toxiproxy
 
 **Windows**
 
-Toxiproxy for Windows is available for download at https://github.com/Shopify/toxiproxy/releases/download/v1.2.1/toxiproxy-windows-amd64.exe
+Toxiproxy for Windows is available for download at https://github.com/Shopify/toxiproxy/releases/download/v2.1.1/toxiproxy-server-windows-amd64.exe
 
 **Docker**
 
@@ -219,6 +223,8 @@ Toxiproxy is available on [Docker Hub](https://hub.docker.com/r/shopify/toxiprox
 $ docker pull shopify/toxiproxy
 $ docker run -it shopify/toxiproxy
 ```
+
+If using Toxiproxy from the host rather than other containers, enable host networking with `--net=host`.
 
 **Source**
 
@@ -279,7 +285,9 @@ This makes sure there are no clashes between applications using the same
 Toxiproxy.
 
 For large application we recommend storing the Toxiproxy configurations in a
-separate configuration file. We use `config/toxiproxy.json`.
+separate configuration file. We use `config/toxiproxy.json`. This file can be
+passed to the server using the `-config` option, or loaded by the application
+to use with the `populate` function.
 
 Use ports outside the ephemeral port range to avoid random port conflicts.
 It's `32,768` to `61,000` on Linux by default, see
@@ -377,6 +385,12 @@ Attributes:
  - `size_variation`: variation in bytes of an average packet (should be smaller than average_size)
  - `delay`: time in microseconds to delay each packet by
 
+#### limit_data
+
+Closes connection when transmitted data exceeded limit.
+
+ - `bytes`: number of bytes it should transmit before connection is closed
+
 ### HTTP API
 
 All communication with the Toxiproxy daemon from the client happens through the
@@ -422,15 +436,27 @@ All endpoints are JSON.
 
  - **GET /proxies** - List existing proxies and their toxics
  - **POST /proxies** - Create a new proxy
+ - **POST /populate** - Create or replace a list of proxies
  - **GET /proxies/{proxy}** - Show the proxy with all its active toxics
  - **POST /proxies/{proxy}** - Update a proxy's fields
  - **DELETE /proxies/{proxy}** - Delete an existing proxy
  - **GET /proxies/{proxy}/toxics** - List active toxics
+ - **POST /proxies/{proxy}/toxics** - Create a new toxic
  - **GET /proxies/{proxy}/toxics/{toxic}** - Get an active toxic's fields
  - **POST /proxies/{proxy}/toxics/{toxic}** - Update an active toxic
  - **DELETE /proxies/{proxy}/toxics/{toxic}** - Remove an active toxic
  - **POST /reset** - Enable all proxies and remove all active toxics
  - **GET /version** - Returns the server version number
+
+#### Populating Proxies
+
+Proxies can be added and configured in bulk using the `/populate` endpoint. This is done by
+passing an json array of proxies to toxiproxy. If a proxy with the same name already exists,
+it will be compared to the new proxy and replaced if the `upstream` and `listen` address don't match.
+
+A `/populate` call can be included for example at application start to ensure all required proxies
+exist. It is safe to make this call several times, since proxies will be untouched as long as their
+fields are consistent with the new data.
 
 ### CLI Example
 
@@ -532,14 +558,16 @@ For example, `shopify_test_redis_master` or `shopify_development_mysql_1`.
 
 ### Release
 
-1. Update `CHANGELOG.md`
-2. Bump `VERSION`
-3. Change versions in `README.md`
-4. Commit
-5. Tag
-6. `make release` to create binaries, packages and push new Docker image
-7. Create [Github draft release](https://github.com/Shopify/toxiproxy/releases/new) against new tag and upload binaries and Debian package
-8. [Bump version for Homebrew](https://github.com/Shopify/homebrew-shopify/blob/master/toxiproxy.rb#L9)
+1. Ensure this release has run internally for `Shopify/shopify` for at least a
+   day which is the best fuzzy test for robustness we have.
+2. Update `CHANGELOG.md`
+3. Bump `VERSION`
+4. Change versions in `README.md`
+5. Commit
+6. Tag
+7. `make release` to create binaries, packages and push new Docker image
+8. Create [Github draft release](https://github.com/Shopify/toxiproxy/releases/new) against new tag and upload binaries and Debian package
+9. [Bump version for Homebrew](https://github.com/Shopify/homebrew-shopify/blob/master/toxiproxy.rb#L9)
 
 
 [blog]: https://engineering.shopify.com/17489072-building-and-testing-resilient-ruby-on-rails-applications

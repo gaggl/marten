@@ -6,13 +6,12 @@ probability.
 Marten is an extension of toxiproxy proper with 1 additional toxic, namely the status toxic. This allows the user to modify
 http response bodies.
 
-## Update Dependencies
-
-    go get -u github.com/Shopify/toxiproxy
-    govendor update +local
-
-## Buid
+## Build
     go build
+
+## Run
+
+    ./marten [ --config example/marten.json ]
 
 ## Config
 
@@ -21,9 +20,4 @@ As marten is an extension of toxiproxy, so we like to point you to its [manual](
 ```
 $ toxiproxy-cli toxic add marten -t response [-a code=500] [-a status="foobarbqq"] [-a body='{ "foo": "bar" }'] [--tox 0-1.0]
 ```
-
-## Run
-
-    ./marten [ --config example/marten.json ]
-
 
